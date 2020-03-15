@@ -1,14 +1,17 @@
 import Handler.MainHadler as Hand
-#import NeuralNet.Traning as neural
 import numpy as np
 import data_besa.data_mssql as db
 import Builder_Command.BuilderCommand as Command #создание команд Command.create_commamd(Type, [])
 import DataLog as Data
 import json as js
-from itertools import takewhile
+import keras.models
+from sklearn.tree import DecisionTreeClassifier
+import pickle
+from Manager.NetModelManager import Pred
 
 
 class NewGoods(Hand.AbstractHandler):
+
     def gen_sort(self, flag):
         if flag == 1:
             list_qr = Command.create_command("SortTask", [[0, 2]])
@@ -30,19 +33,21 @@ class NewGoods(Hand.AbstractHandler):
                                                             "INNER JOIN Goods g "
                                                             "ON n.id_goods = g.id "
                                                             "Where g.Name = ?", (goods_name,))
-        try:
-            network = neural.NeurlN(learning_rate=0.01, start_weight=1)
-            ser = network.predict(np.array(select_info_neural))
-            print(ser)
-            if ser >= 0.8:
-                i = 4
-            elif ser >= 0.65:
-                i = 5
-            else:
-                i = 6
-            db.db_sql.update_db(data_base, "UPDATE map_to_day SET id_goods = ? WHERE id_graf = ?", (select[0], i))
-        except:
-            pass
+        ser = Pred().pre(np.array([[select_info_neural[5], select_info_neural[2], select_info_neural[1],
+                                                    select_info_neural[6]]]))
+        with open('small_tree.sav', 'rb') as file:
+            tree = pickle.load(file)
+        trt = tree.predict([[select_info_neural[0], select_info_neural[3], select_info_neural[4], ser[0]]])
+        print('12')
+        print(ser, trt)
+        if trt > 3:
+            i = 4
+        elif trt == 3:
+            i = 5
+        else:
+            i = 6
+        print(select[0], i)
+        db.db_sql.update_db(data_base, "UPDATE MapsDay SET idgraf = ? WHERE idgoods = ?", (i, select[0]))
 
     def handle(self, request):
         robo_list = Data.DataBase()

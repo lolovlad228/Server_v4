@@ -1,8 +1,8 @@
 import json
 from socket import socket
 
-class Send:
 
+class Send:
     def login(self, sock):
         send = {
             "Type_Command": "Login",
